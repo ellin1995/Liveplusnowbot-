@@ -1,6 +1,6 @@
 """
 =============================================================================
-aliSTREAM Live TV Bot - Supabase Integration + Safe Player Launcher
+aliSTREAM Live TV Bot - Supabase Integration + Direct VLC Intent Launcher
 Framework: aiogram v3
 =============================================================================
 """
@@ -86,6 +86,18 @@ class SupabaseChannelManager:
 
 channel_manager = SupabaseChannelManager(SUPABASE_URL, SUPABASE_KEY)
 
+# دالة بناء رابط الـ Intent المباشر لمشغل VLC
+def build_vlc_intent_url(stream_url: str) -> str:
+    fallback_encoded = "https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dorg.videolan.vlc"
+    return (
+        f"intent:{stream_url}#Intent;"
+        f"action=android.intent.action.VIEW;"
+        f"type=video/*;"
+        f"package=org.videolan.vlc;"
+        f"S.browser_fallback_url={fallback_encoded};"
+        f"end"
+    )
+
 def build_channels_page_markup(channels: List[Dict[str, Any]], page: int = 0) -> Tuple[InlineKeyboardMarkup, int, int]:
     total_channels = len(channels)
     total_pages = max(1, (total_channels + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE)
@@ -128,7 +140,7 @@ async def show_menu(target: Message | CallbackQuery, page: int = 0, force_refres
             f"<b>⚡ أهلاً بك في بوت البث المباشر</b>\n\n"
             f"📡 <b>إجمالي القنوات المتاحة:</b> <code>{total_channels}</code> قناة\n"
             f"📄 <b>الصفحة:</b> <code>{page + 1} / {total_pages}</code>\n\n"
-            f"👇 اختر القناة المطلوبة:"
+            f"👇 اختر القناة المطلوبة للتشغيل الفوري:"
         )
 
     if isinstance(target, Message):
@@ -171,18 +183,18 @@ async def channel_selection_handler(callback: CallbackQuery) -> None:
             return
 
         stream_url = matched_channel.get("stream_url", "")
-        safe_url = html.escape(stream_url)
+        vlc_intent = build_vlc_intent_url(stream_url)
         
+        # استخدام رابط الـ Intent المباشر للتشغيل الفوري مع زر العودة
         markup = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="📲 تحميل مشغل VLC من Google Play", url=PLAY_STORE_VLC_URL)],
+            [InlineKeyboardButton(text="🎬 تشغيل مباشر في مشغل VLC", url=vlc_intent)],
+            [InlineKeyboardButton(text="📲 تحميل تطبيق VLC من Google Play", url=PLAY_STORE_VLC_URL)],
             [InlineKeyboardButton(text="🔙 العودة لقائمة القنوات", callback_data=f"page:{return_page}")]
         ])
 
         detail_text = (
             f"<b>📺 القناة:</b> <code>{html.escape(matched_channel.get('name', ''))}</code>\n\n"
-            f"🔗 <b>رابط البث المباشر (انسخه وافتحه في أي مشغل مثل VLC):</b>\n"
-            f"<code>{safe_url}</code>\n\n"
-            f"💡 <i>قم بنسخ الرابط أعلاه وضعه مباشرة في تطبيق VLC على هاتفك للاستمتاع بالمشاهدة بدون تقطيع!</i>"
+            f"▶️ اضغط على زر <b>'تشغيل مباشر في مشغل VLC'</b> بالأعلى لفتح البث فوراً على هاتفك!"
         )
 
         await callback.message.edit_text(
