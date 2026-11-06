@@ -1,7 +1,6 @@
 """
 =============================================================================
-aliSTREAM Live TV Bot - Supabase Integration + Direct VLC Intent Launcher
-Framework: aiogram v3
+aliSTREAM Live TV Bot - Supabase + Web Redirect VLC Intent (Telegram Compatible)
 =============================================================================
 """
 
@@ -85,18 +84,6 @@ class SupabaseChannelManager:
         self._last_fetch_time = 0.0
 
 channel_manager = SupabaseChannelManager(SUPABASE_URL, SUPABASE_KEY)
-
-# دالة بناء رابط الـ Intent المباشر لمشغل VLC
-def build_vlc_intent_url(stream_url: str) -> str:
-    fallback_encoded = "https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dorg.videolan.vlc"
-    return (
-        f"intent:{stream_url}#Intent;"
-        f"action=android.intent.action.VIEW;"
-        f"type=video/*;"
-        f"package=org.videolan.vlc;"
-        f"S.browser_fallback_url={fallback_encoded};"
-        f"end"
-    )
 
 def build_channels_page_markup(channels: List[Dict[str, Any]], page: int = 0) -> Tuple[InlineKeyboardMarkup, int, int]:
     total_channels = len(channels)
@@ -183,11 +170,16 @@ async def channel_selection_handler(callback: CallbackQuery) -> None:
             return
 
         stream_url = matched_channel.get("stream_url", "")
-        vlc_intent = build_vlc_intent_url(stream_url)
         
-        # استخدام رابط الـ Intent المباشر للتشغيل الفوري مع زر العودة
+        # ترميز رابط البث ليكون آمناً في الـ URL
+        import urllib.parse
+        encoded_url = urllib.parse.quote(stream_url, safe="")
+        
+        # استخدام رابط الويب العام على Render (يقبله تيليجرام 100%)
+        web_redirect_url = f"https://liveplusnowbot.onrender.com/play?url={encoded_url}"
+        
         markup = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🎬 تشغيل مباشر في مشغل VLC", url=vlc_intent)],
+            [InlineKeyboardButton(text="🎬 تشغيل مباشر في مشغل VLC", url=web_redirect_url)],
             [InlineKeyboardButton(text="📲 تحميل تطبيق VLC من Google Play", url=PLAY_STORE_VLC_URL)],
             [InlineKeyboardButton(text="🔙 العودة لقائمة القنوات", callback_data=f"page:{return_page}")]
         ])
@@ -212,12 +204,59 @@ async def noop_handler(callback: CallbackQuery) -> None:
     await callback.answer()
 
 async def health_check(request: web.Request) -> web.Response:
-    return web.Response(text="Bot is running!", content_type="text/plain")
+    return web.Response(text="Bot is running live!", content_type="text/plain")
+
+async def play_redirect_handler(request: web.Request) -> web.Response:
+    stream_url = request.query.get("url", "")
+    if not stream_url:
+        return web.Response(text="Stream URL not provided.", status=400)
+    
+    html_content = f"""<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تشغيل البث المباشر - aliSTREAM</title>
+    <style>
+        body {{ font-family: Tahoma, sans-serif; background: #121212; color: #fff; text-align: center; padding-top: 50px; }}
+        .btn {{ background: #ff5722; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-size: 18px; display: inline-block; margin-top: 20px; }}
+        .playstore {{ background: #2196F3; }}
+    </style>
+    <script>
+        window.onload = function() {{
+            var streamUrl = "{stream_url}";
+            var fallbackUrl = "{PLAY_STORE_VLC_URL}";
+            var intentUrl = "intent:" + streamUrl + "#Intent;action=android.intent.action.VIEW;type=video/*;package=org.videolan.vlc;S.browser_fallback_url=" + encodeURIComponent(fallbackUrl) + ";end;";
+            window.location.href = intentUrl;
+        }};
+    </script>
+</head>
+<body>
+    <h2>⚡ جاري فتح البث في مشغل VLC...</h2>
+    <p>إذا لم يفتح المشغل تلقائياً، اضغط على الزر أدناه:</p>
+    <br>
+    <a id="vlcLink" href="#" class="btn">🎬 اضغط هنا للتشغيل الفوري</a>
+    <br><br>
+    <a href="{PLAY_STORE_VLC_URL}" class="btn playstore">📲 تحميل مشغل VLC من Google Play</a>
+
+    <script>
+        var streamUrl = "{stream_url}";
+        var fallbackUrl = "{PLAY_STORE_VLC_URL}";
+        var intentUrl = "intent:" + streamUrl + "#Intent;action=android.intent.action.VIEW;type=video/*;package=org.videolan.vlc;S.browser_fallback_url=" + encodeURIComponent(fallbackUrl) + ";end;";
+        document.getElementById("vlcLink").href = intentUrl;
+    </script>
+</body>
+</html>
+"""
+    return web.Response(text=html_content, content_type="text/html", charset="utf-8")
 
 async def main() -> None:
     logging.basicConfig(level=logging.INFO)
     app = web.Application()
     app.router.add_get("/", health_check)
+    app.router.add_get("/health", health_check)
+    app.router.add_get("/play", play_redirect_handler)
+    
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", PORT)
