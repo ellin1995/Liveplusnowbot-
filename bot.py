@@ -1,8 +1,8 @@
 """
 =============================================================================
-live plus Now Bot - Modern Telegram Streaming Bot
+liveplusnowbot Bot - Modern Telegram Streaming Bot
 Framework: aiogram v3 (Asynchronous Telegram Bot Framework)
-Database: Supabase Cloud Database + Built-in Full 50+ Channels Fallback
+Database: Supabase Cloud Database + Built-in Full Channels Fallback
 Player: Direct Android VLC Intent Launcher with Google Play Store Fallback
 Watermark: #Alistreamlivebot
 Platform: Render.com / Koyeb / VPS / Local / Android Termux
@@ -36,10 +36,8 @@ from aiogram.types import (
     Message,
 )
 
-# Load environment variables from .env if present
 load_dotenv()
 
-# Ensure utf-8 encoding for standard output and logging
 if hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -53,7 +51,7 @@ if hasattr(sys.stderr, "reconfigure"):
         pass
 
 # ---------------------------------------------------------------------------
-# 1. CONFIGURATION & CREDENTIALS (AUTOMATIC FALLBACKS FOR RENDER)
+# 1. CONFIGURATION & CREDENTIALS
 # ---------------------------------------------------------------------------
 DEFAULT_BOT_TOKEN = "8792889859:AAFuY7i-UFR-WVLQrlj4hMPx8FQBy4UddnA"
 BOT_TOKEN: str = os.getenv("BOT_TOKEN", "").strip() or DEFAULT_BOT_TOKEN
@@ -61,74 +59,23 @@ BOT_TOKEN: str = os.getenv("BOT_TOKEN", "").strip() or DEFAULT_BOT_TOKEN
 SUPABASE_URL: str = os.getenv("SUPABASE_URL", "https://ddywqmupodubrwlaflem.supabase.co").strip().rstrip("/")
 SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "sb_publishable_r1wS_YGGkexuVtRvvBy40Q_Qm-i672h").strip()
 
-# Port for Render.com / Cloud Web Services (Render sets PORT=10000 by default)
 PORT: int = int(os.getenv("PORT", "10000"))
 
-# Constants & Force Subscription Channel
 WATERMARK: str = "#Alistreamlivebot"
 BOT_BRAND: str = "⚡ aliSTREAM Live TV"
 PLAY_STORE_VLC_URL: str = "https://play.google.com/store/apps/details?id=org.videolan.vlc"
 ITEMS_PER_PAGE: int = 8
-CACHE_TTL_SECONDS: int = 120  # In-memory cache TTL for channels
+CACHE_TTL_SECONDS: int = 120
 
-# إعدادات قناة الاشتراك الإجباري المطلوبة
 REQUIRED_CHANNEL_USERNAME: str = "@alifootball95"
 REQUIRED_CHANNEL_URL: str = "https://t.me/alifootball95"
 
-# ---------------------------------------------------------------------------
-# COMPLETE 50+ CHANNELS DATA (AUTOMATICALLY ACTIVE IF SUPABASE IS EMPTY)
-# ---------------------------------------------------------------------------
 DEFAULT_CHANNELS_MAP: Dict[str, str] = {
     "FR | BEIN SPORTS 1 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/14160.ts",
     "FR | BEIN SPORTS 1 HD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/14170.ts",
-    "FR | BEIN SPORTS 1 SD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/92.ts",
-    "FR | BEIN SPORTS 2 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/14153.ts",
-    "FR | BEIN SPORTS 2 HD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/14169.ts",
-    "FR | BEIN SPORTS 2 SD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/93.ts",
-    "FR | BEIN SPORTS 3 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/14152.ts",
-    "FR | BEIN SPORTS 3 HD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/14163.ts",
-    "FR | BEIN SPORTS 3 SD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/94.ts",
-    "FR | BEIN SPORTS MAX 4 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/151958.ts",
-    "FR | BEIN SPORTS MAX 4 HD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/95.ts",
-    "FR | BEIN SPORTS MAX 5 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/151961.ts",
-    "FR | BEIN SPORTS MAX 5 HD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/39882.ts",
-    "FR | BEIN SPORTS MAX 6 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/151964.ts",
-    "FR | BEIN SPORTS MAX 6 HD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/1089.ts",
-    "FR | BEIN SPORTS MAX 7 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/151967.ts",
-    "FR | BEIN SPORTS MAX 7 HD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/1113.ts",
-    "FR | BEIN SPORTS MAX 8 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/151970.ts",
-    "FR | BEIN SPORTS MAX 8 HD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/1468.ts",
-    "FR | BEIN SPORTS MAX 9 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/151973.ts",
-    "FR | BEIN SPORTS MAX 9 HD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/1469.ts",
-    "FR | BEIN SPORTS MAX 10 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/151976.ts",
-    "FR | BEIN SPORTS MAX 10 HD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/1470.ts",
-    "FR | BEIN SPORTS 1 |HEVC|": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/47499.ts",
-    "FR | BEIN SPORTS 2 |HEVC|": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/47500.ts",
-    "C+ RÉU| BEIN SPORTS 1 HD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/359681.ts",
-    "C+ RÉU| BEIN SPORTS 2 HD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/359680.ts",
-    "C+ RÉU| BEIN SPORTS 3 HD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/359679.ts",
-    "C+ RÉU| BEIN SPORTS MAX 4": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/359678.ts",
-    "C+ RÉU| BEIN SPORTS MAX 5": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/359677.ts",
-    "AR | BEIN SPORTS ARABIC": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/24983.ts",
-    "AR | BEIN SPORTS NEWS FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/24979.ts",
-    "AR | BEIN SPORTS NEWS HD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/78372.ts",
-    "AR | BEIN SPORTS GLOBAL FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/24980.ts",
-    "AR | BEIN SPORTS GLOBAL HD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/409586.ts",
-    "AR | BEIN SPORTS 4K": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/164973.ts",
     "AR | BEIN SPORTS 1 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/13608.ts",
-    "AR | BEIN SPORTS 1 FHD BKP": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/368730.ts",
-    "AR | BEIN SPORTS 1 HD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/13682.ts",
     "AR | BEIN SPORTS 2 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/13607.ts",
     "AR | BEIN SPORTS 3 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/13606.ts",
-    "AR | BEIN SPORTS 4 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/13605.ts",
-    "AR | BEIN SPORTS 5 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/13604.ts",
-    "AR | BEIN SPORTS 6 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/13603.ts",
-    "AR | BEIN SPORTS 7 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/13602.ts",
-    "AR | BEIN SPORTS 8 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/13611.ts",
-    "AR | BEIN SPORTS 9 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/13610.ts",
-    "AR | BEIN SPORTS NBA FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/21197.ts",
-    "TR | BEIN SPORTS 1 FHD": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/79457.ts",
-    "US | BEIN SPORTS US": "http://tv.gold-pro.xyz:80/live/yqKy0YRZ/f6dUahs/328821.ts",
 }
 
 DEFAULT_FALLBACK_CHANNELS: List[Dict[str, Any]] = [
@@ -137,10 +84,9 @@ DEFAULT_FALLBACK_CHANNELS: List[Dict[str, Any]] = [
 ]
 
 # ---------------------------------------------------------------------------
-# 2. SUPABASE CHANNELS MANAGER (ASYNC WITH IN-MEMORY CACHE)
+# 2. SUPABASE CHANNELS MANAGER
 # ---------------------------------------------------------------------------
 class SupabaseChannelManager:
-    """Manages Supabase channel retrieval with smart caching and auto fallback."""
     def __init__(self, url: str, key: str):
         self.url = url
         self.key = key
@@ -186,10 +132,9 @@ class SupabaseChannelManager:
                 logging.info("📡 تم جلب %d قناة من Supabase بنجاح.", len(data))
                 return self._cache
             else:
-                logging.info("ℹ️ جدول Supabase لم يعد بيانات بعد، تم تفعيل القنوات المدمجة (%d قناة).", len(DEFAULT_FALLBACK_CHANNELS))
                 return DEFAULT_FALLBACK_CHANNELS
         except Exception as exc:
-            logging.error("❌ خطأ أثناء استعلام Supabase: %s. يتم استخدام القنوات المدمجة.", exc)
+            logging.error("❌ خطأ أثناء استعلام Supabase: %s", exc)
             return DEFAULT_FALLBACK_CHANNELS
 
     def clear_cache(self) -> None:
@@ -199,10 +144,9 @@ class SupabaseChannelManager:
 channel_manager = SupabaseChannelManager(SUPABASE_URL, SUPABASE_KEY)
 
 # ---------------------------------------------------------------------------
-# 3. CHECK MEMBERSHIP (FORCE SUBSCRIPTION)
+# 3. MEMBERSHIP & VLC INTENT
 # ---------------------------------------------------------------------------
 async def check_user_subscription(bot: Bot, user_id: int) -> bool:
-    """التحقق مما إذا كان المستخدم مشتركاً في القناة الإجبارية @alifootball95"""
     try:
         member = await bot.get_chat_member(chat_id=REQUIRED_CHANNEL_USERNAME, user_id=user_id)
         if member.status in ["creator", "administrator", "member"]:
@@ -213,7 +157,6 @@ async def check_user_subscription(bot: Bot, user_id: int) -> bool:
         return True
 
 def get_subscription_markup() -> InlineKeyboardMarkup:
-    """لوحة أزرار الاشتراك الإجباري"""
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="📢 اشتراك في القناة الرسمية", url=REQUIRED_CHANNEL_URL)],
@@ -221,9 +164,6 @@ def get_subscription_markup() -> InlineKeyboardMarkup:
         ]
     )
 
-# ---------------------------------------------------------------------------
-# 4. DIRECT VLC INTENT BUILDER
-# ---------------------------------------------------------------------------
 def build_vlc_intent_url(stream_url: str) -> str:
     fallback_encoded = "https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dorg.videolan.vlc"
     return (
@@ -236,7 +176,7 @@ def build_vlc_intent_url(stream_url: str) -> str:
     )
 
 # ---------------------------------------------------------------------------
-# 5. KEYBOARD BUILDERS (PAGINATION & INTENT PLAYBACK)
+# 4. KEYBOARD BUILDERS
 # ---------------------------------------------------------------------------
 def build_channels_page_markup(channels: List[Dict[str, Any]], page: int = 0) -> Tuple[InlineKeyboardMarkup, int, int]:
     total_channels = len(channels)
@@ -249,11 +189,12 @@ def build_channels_page_markup(channels: List[Dict[str, Any]], page: int = 0) ->
     keyboard: List[List[InlineKeyboardButton]] = []
     for idx in range(start_idx, end_idx):
         ch = channels[idx]
+        ch_id = ch.get("id", idx)
         ch_name = ch.get("name", f"قناة #{idx + 1}")
         keyboard.append([
             InlineKeyboardButton(
                 text=f"📺 {ch_name}",
-                callback_data=f"ch:{idx}:{page}",
+                callback_data=f"ch:{ch_id}:{page}",
             )
         ])
     
@@ -272,8 +213,7 @@ def build_channels_page_markup(channels: List[Dict[str, Any]], page: int = 0) ->
     
     return InlineKeyboardMarkup(inline_keyboard=keyboard), total_pages, total_channels
 
-def build_channel_playback_markup(channel_idx: int, channel: Dict[str, Any], return_page: int) -> InlineKeyboardMarkup:
-    stream_url = channel.get("stream_url", "")
+def build_channel_playback_markup(ch_id: Any, stream_url: str, return_page: int) -> InlineKeyboardMarkup:
     vlc_intent = build_vlc_intent_url(stream_url)
     keyboard: List[List[InlineKeyboardButton]] = [
         [InlineKeyboardButton(text="🎬 تشغيل مباشر في مشغل VLC", url=vlc_intent)],
@@ -283,7 +223,7 @@ def build_channel_playback_markup(channel_idx: int, channel: Dict[str, Any], ret
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 # ---------------------------------------------------------------------------
-# 6. UI TEXT TEMPLATES WITH BRANDING & WATERMARK
+# 5. UI TEXT TEMPLATES
 # ---------------------------------------------------------------------------
 def get_welcome_text(total_channels: int, page: int, total_pages: int) -> str:
     return (
@@ -310,29 +250,14 @@ def get_channel_detail_text(channel: Dict[str, Any]) -> str:
         f"🎬 <b>طريقة التشغيل:</b> إطلاق فوري عبر مشغل <b>VLC Player</b>\n\n"
         f"🚀 <b>طريقة المشاهدة بنقرة واحدة:</b>\n"
         f"اضغط على زر <b>'🎬 تشغيل مباشر في مشغل VLC'</b> بالأسفل ليفتح البث فوراً داخل تطبيق VLC على هاتفك.\n\n"
-        f"📲 <i>إذا لم يكن تطبيق VLC مثبتاً لديك، سيوجهك الرابط تلقائياً لمتجر Google Play لتثبيته فوراً.</i>\n\n"
         f"🔗 <b>رابط البث المباشر (نسخ يدوي):</b>\n"
         f"<code>{safe_stream}</code>\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"🏷️ <code>{WATERMARK}</code>"
     )
 
-def get_help_text() -> str:
-    return (
-        f"<b>{BOT_BRAND} - دليل الاستخدام السريع</b>\n"
-        f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"1️⃣ <b>تثبيت مشغل VLC:</b>\n"
-        f"تأكد من وجود تطبيق <b>VLC for Android</b> على هاتفك لتشغيل البث بأعلى جودة وبدون تقطيع.\n\n"
-        f"2️⃣ <b>التشغيل الفوري:</b>\n"
-        f"عند اختيار أي قناة، اضغط على زر <b>'تشغيل مباشر في مشغل VLC'</b> وسيتم إطلاق البث تلقائياً داخل المشغل.\n\n"
-        f"3️⃣ <b>التنقل بين القنوات:</b>\n"
-        f"استخدم أزرار (السابق / التالي) للتنقل بين الصفحات بسهولة.\n"
-        f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🏷️ <code>{WATERMARK}</code>"
-    )
-
 # ---------------------------------------------------------------------------
-# 7. DISPATCHER & BOT EVENT HANDLERS
+# 6. DISPATCHER & HANDLERS
 # ---------------------------------------------------------------------------
 dp = Dispatcher()
 
@@ -372,20 +297,6 @@ async def render_channels_menu(target: Message | CallbackQuery, page: int = 0, f
 async def cmd_start_handler(message: Message) -> None:
     await render_channels_menu(message, page=0)
 
-@dp.message(Command("channels"))
-async def cmd_channels_handler(message: Message) -> None:
-    await render_channels_menu(message, page=0)
-
-@dp.message(Command("refresh"))
-async def cmd_refresh_handler(message: Message) -> None:
-    channel_manager.clear_cache()
-    await message.answer("🔄 جاري تحديث قائمة القنوات...")
-    await render_channels_menu(message, page=0, force_refresh=True)
-
-@dp.message(F.text.lower().in_(["start", "star", "ابدأ", "ابدا", "قنوات", "القنوات", "menu", "قائمة", "تحديث"]))
-async def text_trigger_handler(message: Message) -> None:
-    await render_channels_menu(message, page=0)
-
 @dp.callback_query(F.data == "check_sub")
 async def check_subscription_callback(callback: CallbackQuery) -> None:
     bot_obj = callback.bot
@@ -421,13 +332,19 @@ async def refresh_callback_handler(callback: CallbackQuery) -> None:
 async def channel_selection_handler(callback: CallbackQuery) -> None:
     try:
         parts = callback.data.split(":")
-        channel_idx = int(parts[1])
+        target_id = str(parts[1])
         return_page = int(parts[2]) if len(parts) > 2 else 0
+        
         channels = await channel_manager.get_channels()
-        if 0 <= channel_idx < len(channels):
-            channel = channels[channel_idx]
-            detail_text = get_channel_detail_text(channel)
-            markup = build_channel_playback_markup(channel_idx, channel, return_page)
+        matched_channel = None
+        for ch in channels:
+            if str(ch.get("id")) == target_id:
+                matched_channel = ch
+                break
+        
+        if matched_channel:
+            detail_text = get_channel_detail_text(matched_channel)
+            markup = build_channel_playback_markup(target_id, matched_channel.get("stream_url", ""), return_page)
             await callback.message.edit_text(
                 text=detail_text,
                 reply_markup=markup,
@@ -447,116 +364,45 @@ async def help_callback_handler(callback: CallbackQuery) -> None:
     )
     try:
         await callback.message.edit_text(
-            text=get_help_text(),
+            text="<b>⚡ دليل الاستخدام:</b>\nاختر أي قناة واضغط على زر التشغيل لتفتح مباشرة في تطبيق VLC.",
             reply_markup=keyboard,
             disable_web_page_preview=True,
         )
         await callback.answer()
     except Exception as exc:
-        logging.error("Help callback error: %s", exc)
         await callback.answer()
 
-@dp.callback_query(F.data == "noop")
-async def noop_callback_handler(callback: CallbackQuery) -> None:
-    channels = await channel_manager.get_channels()
-    total_pages = max(1, (len(channels) + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE)
-    await callback.answer(f"📄 إجمالي الصفحات: {total_pages} صفحة")
-
 # ---------------------------------------------------------------------------
-# 8. RESILIENT CLOUD HEALTH CHECK & WEB PLAYER SERVER (FOR RENDER.COM)
+# 7. HEALTH CHECK SERVER FOR RENDER
 # ---------------------------------------------------------------------------
 async def health_check_handler(request: web.Request) -> web.Response:
-    status_msg = (
-        f"🟢 {BOT_BRAND} is LIVE and healthy on Render!\n"
-        f"🏷️ Watermark: {WATERMARK}\n"
-        f"📢 Required Channel: {REQUIRED_CHANNEL_USERNAME}\n"
-        f"🗄️ Supabase: {'Connected' if channel_manager.is_configured() else 'Active with built-in channels'}\n"
-        f"🤖 Telegram Bot: Configured and Running\n"
-    )
-    return web.Response(text=status_msg, content_type="text/plain", charset="utf-8")
-
-async def web_player_handler(request: web.Request) -> web.Response:
-    possible_paths = [
-        os.path.join(os.path.dirname(__file__), "web_player", "index.html"),
-        os.path.join(os.path.dirname(__file__), "index.html"),
-        "web_player/index.html",
-        "index.html",
-    ]
-    for p in possible_paths:
-        if os.path.isfile(p):
-            try:
-                with open(p, "r", encoding="utf-8") as f:
-                    content = f.read()
-                return web.Response(text=content, content_type="text/html", charset="utf-8")
-            except Exception as exc:
-                logging.error("Error reading web player HTML: %s", exc)
-    return web.Response(text="Web Player HTML file not found.", status=404)
+    return web.Response(text="Bot is running live!", content_type="text/plain")
 
 async def start_health_server(port: int) -> web.AppRunner:
     app = web.Application()
     app.router.add_get("/", health_check_handler)
-    app.router.add_get("/health", health_check_handler)
-    app.router.add_get("/player", web_player_handler)
-    app.router.add_get("/web_player", web_player_handler)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
-    logging.info("✅ Healthcheck & Web Player server listening on 0.0.0.0:%d (Render Ready 🟢)", port)
     return runner
 
-# ---------------------------------------------------------------------------
-# 9. APPLICATION ENTRYPOINT (FAIL-SAFE FOR CLOUD HOSTING)
-# ---------------------------------------------------------------------------
 async def main() -> None:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        handlers=[logging.StreamHandler(sys.stdout)],
-    )
-    logger = logging.getLogger("aliSTREAM.bot")
-    
-    print("\n" + "=" * 65)
-    print(f"🚀 {BOT_BRAND} - تشغيل النظام السحابي")
-    print(f"🏷️ Watermark: {WATERMARK}")
-    print(f"📢 قناة الاشتراك الإجباري: {REQUIRED_CHANNEL_USERNAME}")
-    print(f"🌐 Cloud Port: {PORT}")
-    print(f"📡 القنوات الجاهزة للتشغيل: {len(DEFAULT_FALLBACK_CHANNELS)} قناة مدمجة")
-    print(f"🗄️ Supabase: {'✅ متصل ومفعل' if channel_manager.is_configured() else 'ℹ️ القنوات المدمجة نشطة'}")
-    print("=" * 65 + "\n")
-
-    http_runner = None
-    try:
-        http_runner = await start_health_server(PORT)
-    except Exception as exc:
-        logger.error("❌ Could not bind health check server on port %d: %s", PORT, exc)
+    logging.basicConfig(level=logging.INFO)
+    http_runner = await start_health_server(PORT)
 
     bot = Bot(
         token=BOT_TOKEN,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
 
-    retry_delay = 5
     while True:
         try:
-            bot_info = await bot.get_me()
-            logger.info("✅ تم الاتصال بنجاح بخوادم تيليجرام: @%s (ID: %s)", bot_info.username, bot_info.id)
-            logger.info("🟢 البوت يستقبل الرسائل والتحديثات الآن...")
             await bot.delete_webhook(drop_pending_updates=False)
             await dp.start_polling(bot)
             break
-        except TelegramUnauthorizedError:
-            logger.error("❌ التوكن BOT_TOKEN غير مصرح به (401 Unauthorized)! يرجى التحقق من توكن البوت.")
-            await asyncio.sleep(60)
-        except TelegramConflictError:
-            logger.warning("⚠️ يوجد تضارب: هناك نسخة أخرى تعمل بنفس التوكن. إعادة المحاولة بعد %d ثوانٍ...", retry_delay)
-            await asyncio.sleep(retry_delay)
-            retry_delay = min(retry_delay * 2, 60)
-        except TelegramNetworkError as net_err:
-            logger.warning("⚠️ انقطاع مؤقت في الاتصال بـ Telegram (%s). إعادة المحاولة بعد 10 ثوانٍ...", net_err)
-            await asyncio.sleep(10)
         except Exception as exc:
-            logger.error("⚠️ حدث خطأ أثناء تشغيل البوت: %s. إعادة المحاولة بعد 10 ثوانٍ...", exc)
+            logging.error("Polling error: %s", exc)
             await asyncio.sleep(10)
 
     if http_runner:
@@ -567,4 +413,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        print("\n🛑 تم إيقاف البوت بنجاح.")
+        pass
