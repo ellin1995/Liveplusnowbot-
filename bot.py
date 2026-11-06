@@ -1,9 +1,7 @@
 """
 =============================================================================
-aliSTREAM Live TV Bot - Supabase Integration + External VLC Player
+aliSTREAM Live TV Bot - Supabase Integration + Safe Player Launcher
 Framework: aiogram v3
-Database: Supabase Cloud Database
-Player: Direct Android VLC Intent Launcher with Google Play Store Fallback
 =============================================================================
 """
 
@@ -27,22 +25,16 @@ from aiogram.types import (
 )
 from aiogram.filters import Command, CommandStart
 
-# إعدادات البوت والتوكن
 BOT_TOKEN = "8792889859:AAFuY7i-UFR-WVLQrlj4hMPx8FQBy4UddnA"
 PORT = int(os.getenv("PORT", "10000"))
 
-# إعدادات Supabase
-SUPAGE_URL_DEFAULT = "https://ddywqmupodubrwlaflem.supabase.co"
-SUPABASE_KEY_DEFAULT = "sb_publishable_r1wS_YGGkexuVtRvvBy40Q_Qm-i672h"
-
-SUPABASE_URL = os.getenv("SUPABASE_URL", SUPAGE_URL_DEFAULT).strip().rstrip("/")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", SUPABASE_KEY_DEFAULT).strip()
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://ddywqmupodubrwlaflem.supabase.co").strip().rstrip("/")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "sb_publishable_r1wS_YGGkexuVtRvvBy40Q_Qm-i672h").strip()
 
 PLAY_STORE_VLC_URL = "https://play.google.com/store/apps/details?id=org.videolan.vlc"
 ITEMS_PER_PAGE = 8
 CACHE_TTL_SECONDS = 120
 
-# مدير جلب القنوات من Supabase
 class SupabaseChannelManager:
     def __init__(self, url: str, key: str):
         self.url = url
@@ -94,18 +86,6 @@ class SupabaseChannelManager:
 
 channel_manager = SupabaseChannelManager(SUPABASE_URL, SUPABASE_KEY)
 
-# دالة إنشاء رابط الـ Intent للمشغل الخارجي
-def build_vlc_intent_url(stream_url: str) -> str:
-    fallback_encoded = "https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dorg.videolan.vlc"
-    return (
-        f"intent:{stream_url}#Intent;"
-        f"action=android.intent.action.VIEW;"
-        f"type=video/*;"
-        f"package=org.videolan.vlc;"
-        f"S.browser_fallback_url={fallback_encoded};"
-        f"end"
-    )
-
 def build_channels_page_markup(channels: List[Dict[str, Any]], page: int = 0) -> Tuple[InlineKeyboardMarkup, int, int]:
     total_channels = len(channels)
     total_pages = max(1, (total_channels + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE)
@@ -148,7 +128,7 @@ async def show_menu(target: Message | CallbackQuery, page: int = 0, force_refres
             f"<b>⚡ أهلاً بك في بوت البث المباشر</b>\n\n"
             f"📡 <b>إجمالي القنوات المتاحة:</b> <code>{total_channels}</code> قناة\n"
             f"📄 <b>الصفحة:</b> <code>{page + 1} / {total_pages}</code>\n\n"
-            f"👇 اختر القناة المطلوبة للتشغيل الفوري عبر مشغل VLC:"
+            f"👇 اختر القناة المطلوبة:"
         )
 
     if isinstance(target, Message):
@@ -191,17 +171,22 @@ async def channel_selection_handler(callback: CallbackQuery) -> None:
             return
 
         stream_url = matched_channel.get("stream_url", "")
-        vlc_intent = build_vlc_intent_url(stream_url)
+        safe_url = html.escape(stream_url)
         
         markup = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🎬 تشغيل مباشر في مشغل VLC", url=vlc_intent)],
-            [InlineKeyboardButton(text="📲 تحميل تطبيق VLC من Google Play", url=PLAY_STORE_VLC_URL)],
+            [InlineKeyboardButton(text="📲 تحميل مشغل VLC من Google Play", url=PLAY_STORE_VLC_URL)],
             [InlineKeyboardButton(text="🔙 العودة لقائمة القنوات", callback_data=f"page:{return_page}")]
         ])
 
-        await callback.message.edit_text(
+        detail_text = (
             f"<b>📺 القناة:</b> <code>{html.escape(matched_channel.get('name', ''))}</code>\n\n"
-            "▶️ اضغط على زر <b>'تشغيل مباشر في مشغل VLC'</b> بالأعلى للبدء الفوري.",
+            f"🔗 <b>رابط البث المباشر (انسخه وافتحه في أي مشغل مثل VLC):</b>\n"
+            f"<code>{safe_url}</code>\n\n"
+            f"💡 <i>قم بنسخ الرابط أعلاه وضعه مباشرة في تطبيق VLC على هاتفك للاستمتاع بالمشاهدة بدون تقطيع!</i>"
+        )
+
+        await callback.message.edit_text(
+            text=detail_text,
             reply_markup=markup,
             parse_mode=ParseMode.HTML
         )
@@ -215,7 +200,7 @@ async def noop_handler(callback: CallbackQuery) -> None:
     await callback.answer()
 
 async def health_check(request: web.Request) -> web.Response:
-    return web.Response(text="Bot is running with Supabase!", content_type="text/plain")
+    return web.Response(text="Bot is running!", content_type="text/plain")
 
 async def main() -> None:
     logging.basicConfig(level=logging.INFO)
